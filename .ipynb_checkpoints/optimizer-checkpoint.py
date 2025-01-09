@@ -4,6 +4,7 @@ from refactoring_engine import RefactoringEngine
 from report_generator import generate_html_report
 import ast
 import astor
+import os
 
 class PythonOptimizer:
     def __init__(self, script_path):
@@ -46,11 +47,23 @@ class PythonOptimizer:
         runtime_profile = profiler.profile_runtime()
         memory_profile = profiler.profile_memory()
 
-        # Refactor code (optional, not currently applied to output)
+        # Refactor code and save the output in the "optimized_code" folder
         tree = ast.parse(source_code)
         refactorer = RefactoringEngine()
         optimized_tree = refactorer.visit(tree)
         optimized_code = astor.to_source(optimized_tree)
+        
+        # Create the "optimized_code" folder if it doesn't exist
+        output_folder = "optimized_code"
+        os.makedirs(output_folder, exist_ok=True)
+
+        # Save the optimized code to a new file inside the folder
+        script_name = os.path.basename(self.script_path).replace(".py", "_optimized.py")
+        optimized_file_path = os.path.join(output_folder, script_name)
+        with open(optimized_file_path, "w") as optimized_file:
+            optimized_file.write(optimized_code)
+
+        print(f"Optimized code saved to '{optimized_file_path}'.")
 
         # Combine results
         static_suggestions = (
@@ -59,8 +72,10 @@ class PythonOptimizer:
             + static_results["vectorization_candidates"]
         )
         nested_loop_suggestions = [
-            f"Line {lineno}: Consider reducing nesting." for lineno in static_results["nested_loops"]
+            {"line": loop["line"], "level": loop["level"], "suggestion": "Consider reducing nesting."}
+            for loop in static_results["nested_loops"]
         ]
+
 
         # Generate HTML report
         formatted_static_suggestions = self.format_suggestions(static_suggestions)

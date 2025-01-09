@@ -2,15 +2,22 @@ import ast
 
 class StaticAnalyzer(ast.NodeVisitor):
     def __init__(self):
-        self.nested_loops = []  # Store line numbers of nested loops
+        self.nested_loops = []  # Store dicts with line numbers and levels of nesting
         self.high_iterations = []
         self.repeated_computations = []
         self.vectorization_candidates = []
 
     def visit_For(self, node):
-        # Detect nested loops
-        if hasattr(node, "parent") and isinstance(node.parent, ast.For):
-            self.nested_loops.append(node.lineno)  # Track line number of nested loop
+        # Detect and track nested loops with nesting levels
+        nesting_level = 0
+        current = node
+        while hasattr(current, "parent"):
+            if isinstance(current.parent, ast.For):
+                nesting_level += 1
+            current = current.parent
+
+        if nesting_level > 0:
+            self.nested_loops.append({"line": node.lineno, "level": nesting_level})
 
         # Detect loops with high iterations
         if isinstance(node.iter, ast.Call) and getattr(node.iter.func, "id", None) == "range":
@@ -22,6 +29,7 @@ class StaticAnalyzer(ast.NodeVisitor):
                     )
 
         self.generic_visit(node)
+
 
     def visit_BinOp(self, node):
         if isinstance(node.op, (ast.Add, ast.Mult)):

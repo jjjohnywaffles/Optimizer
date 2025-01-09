@@ -97,6 +97,7 @@
         <thead>
             <tr>
                 <th>Line</th>
+                <th>Level of Nesting</th>
                 <th>Suggestion</th>
             </tr>
         </thead>
@@ -104,43 +105,27 @@
             
             <tr>
                 <td>8</td>
+                <td>1</td>
                 <td>Consider reducing nesting.</td>
             </tr>
             
             <tr>
                 <td>18</td>
+                <td>1</td>
                 <td>Consider reducing nesting.</td>
             </tr>
             
             <tr>
                 <td>30</td>
+                <td>1</td>
                 <td>Consider reducing nesting.</td>
             </tr>
             
         </tbody>
     </table>
 
-    <h2>What "Consider Caching Repeated Computation" Means</h2>
-    <p>
-        Repeated computations inside loops can significantly impact runtime performance.
-        Caching stores the result of a computation so it doesn’t need to be recalculated multiple times.
-        For example:
-    </p>
-    <pre>
-# Instead of:
-for i in range(100):
-    result = expensive_function(i)
-
-# Use:
-cache = {}
-for i in range(100):
-    if i not in cache:
-        cache[i] = expensive_function(i)
-    result = cache[i]
-    </pre>
-
     <h2>Dynamic Analysis</h2>
     <pre>
-Peak memory usage: 44.80 MB</pre>
+Peak memory usage: 45.21 MB</pre>
 </body>
 </html>
