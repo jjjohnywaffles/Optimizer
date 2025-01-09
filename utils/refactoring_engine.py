@@ -1,6 +1,5 @@
 import ast
 
-
 class RefactoringEngine(ast.NodeTransformer):
     """
     RefactoringEngine that:
@@ -8,28 +7,64 @@ class RefactoringEngine(ast.NodeTransformer):
       - Vectorizes simple numeric loops using NumPy.
     """
 
+    def contains_numpy_usage(self, node):
+        """
+        Check if the AST node contains any usage of 'np.'.
+
+        Args:
+            node (ast.AST): The root node to traverse.
+
+        Returns:
+            bool: True if 'np.' usage is found, False otherwise.
+        """
+        for child in ast.walk(node):
+            if isinstance(child, ast.Attribute) and isinstance(child.value, ast.Name):
+                if child.value.id == "np":
+                    return True
+        return False
+    
     def visit_Module(self, node):
         """
-        Assign .parent to each child so we can climb the AST as needed.
+        Visit the root module node and ensure necessary imports after processing.
         """
+        # Traverse the tree to set parent nodes and apply transformations
         for child in ast.iter_child_nodes(node):
             setattr(child, "parent", node)
             self._set_parents(child)
         self.generic_visit(node)
+
+        # Check for NumPy usage and add the import if necessary
+        if self.contains_numpy_usage(node):
+            self.ensure_numpy_import(node)
+
         return node
+    
+    
 
     def _set_parents(self, parent_node):
+        """
+        Recursively assign `.parent` attributes to child nodes for upward traversal.
+
+        Args:
+            parent_node (ast.AST): The current parent node to process.
+        """
         for child in ast.iter_child_nodes(parent_node):
             setattr(child, "parent", parent_node)
             self._set_parents(child)
 
     def visit_For(self, outer_loop):
         """
-        1. Detect if outer_loop contains exactly one inner For node and flatten.
-        2. Detect if the loop can be vectorized using NumPy.
-        3. Return the modified loop.
+        Process a `for` loop to:
+          1. Flatten nested loops using `itertools.product`.
+          2. Vectorize simple numeric loops using NumPy.
+
+        Args:
+            outer_loop (ast.For): The outer loop node to analyze and transform.
+
+        Returns:
+            ast.AST: The transformed loop node, or the original if no transformations apply.
         """
-        # First, visit children so we have the final structure
+        # Visit children first to ensure correct tree structure
         self.generic_visit(outer_loop)
 
         # Attempt to flatten nested loops
@@ -37,15 +72,20 @@ class RefactoringEngine(ast.NodeTransformer):
         if flattened is not outer_loop:
             return flattened
 
-        # Attempt NumPy vectorization
+        # Attempt to vectorize numeric loops
         vectorized = self.vectorize_numeric_loop(outer_loop)
         return vectorized
 
     def flatten_nested_loop(self, outer_loop):
         """
-        Flatten a nested loop into a single loop using itertools.product.
+        Flatten a nested loop into a single loop with `itertools.product`.
+
+        Args:
+            outer_loop (ast.For): The outer loop node containing a nested loop.
+
+        Returns:
+            ast.For: A flattened loop node, or the original if no changes are made.
         """
-        # Find all For nodes in outer_loop.body
         inner_loops = [stmt for stmt in outer_loop.body if isinstance(stmt, ast.For)]
 
         # Only flatten if exactly one inner loop is present
@@ -53,17 +93,14 @@ class RefactoringEngine(ast.NodeTransformer):
             return outer_loop
 
         inner_loop = inner_loops[0]
-        # Both outer_loop and inner_loop must have simple Name targets
         if (
             isinstance(outer_loop.target, ast.Name)
             and isinstance(inner_loop.target, ast.Name)
             and isinstance(outer_loop.iter, ast.Call)
             and isinstance(inner_loop.iter, ast.Call)
         ):
-            # Insert 'import itertools' at the top if needed
             self.ensure_itertools_import(outer_loop)
 
-            # Build a new single For node
             flattened_target = ast.Tuple(
                 elts=[outer_loop.target, inner_loop.target],
                 ctx=ast.Store()
@@ -79,7 +116,6 @@ class RefactoringEngine(ast.NodeTransformer):
                 keywords=[]
             )
 
-            # Replace inner loop with its body in the flattened loop
             new_body = []
             for stmt in outer_loop.body:
                 if stmt is inner_loop:
@@ -99,19 +135,20 @@ class RefactoringEngine(ast.NodeTransformer):
 
     def ensure_itertools_import(self, node):
         """
-        Insert 'import itertools' at the module level if not already present.
+        Add `import itertools` to the module if it is not already present.
+
+        Args:
+            node (ast.AST): The node within the module to inspect for imports.
         """
         module = self.find_module_node(node)
         if not module:
             return
 
-        # Check if 'itertools' is already imported
         for stmt in module.body:
             if isinstance(stmt, ast.Import):
                 if any(alias.name == "itertools" for alias in stmt.names):
                     return
 
-        # Not found, insert import statement
         module.body.insert(
             0,
             ast.Import(names=[ast.alias(name="itertools", asname=None)])
@@ -119,39 +156,48 @@ class RefactoringEngine(ast.NodeTransformer):
 
     def vectorize_numeric_loop(self, loop_node):
         """
-        Detect and replace simple numeric loops with NumPy operations.
+        Detect and replace simple numeric loops with equivalent NumPy operations.
+
+        Args:
+            loop_node (ast.For): The loop node to analyze for vectorization.
+
+        Returns:
+            ast.AST: A NumPy-based transformation or the original loop if no vectorization applies.
         """
-        # Quick check: for i in range(len(arr)):
         if not (isinstance(loop_node.iter, ast.Call)
                 and isinstance(loop_node.iter.func, ast.Name)
                 and loop_node.iter.func.id == "range"):
             return loop_node
 
-        # Check if body is a single assignment: arr[i] = arr[i] <op> <value>
         if len(loop_node.body) == 1 and isinstance(loop_node.body[0], ast.Assign):
             stmt = loop_node.body[0]
             if len(stmt.targets) == 1 and isinstance(stmt.targets[0], ast.Subscript):
                 target = stmt.targets[0]
                 if isinstance(target.value, ast.Name):
                     array_name = target.value.id
-                    return self.build_vectorized_block(loop_node, array_name, stmt.value)
+                    vectorized_code = self.build_vectorized_code(array_name, stmt.value)
+                    setattr(vectorized_code, "vectorized", True)  # Add marker
+                    return vectorized_code
 
         return loop_node
 
-    def build_vectorized_block(self, loop_node, array_name, value_node):
+    def build_vectorized_code(self, arr_name: str, value_node: ast.AST):
         """
-        Convert a loop to a NumPy operation:
-        - Add `import numpy as np` if not already present.
-        - Replace the loop with a NumPy-based transformation.
+        Convert a loop into a vectorized NumPy transformation.
+
+        Args:
+            arr_name (str): The name of the array being modified in the loop.
+            value_node (ast.AST): The value or operation applied in the loop.
+
+        Returns:
+            ast.AST: A new block of code replacing the loop with a NumPy transformation.
         """
-        # Ensure 'import numpy as np' exists
-        module = self.find_module_node(loop_node)
+        module = self.find_module_node(value_node)
         if module:
             self.ensure_numpy_import(module)
 
-        # Create NumPy transformation: arr = arr + <value>
         vectorized_assign = ast.Assign(
-            targets=[ast.Name(id=array_name, ctx=ast.Store())],
+            targets=[ast.Name(id=arr_name, ctx=ast.Store())],
             value=ast.BinOp(
                 left=ast.Call(
                     func=ast.Attribute(
@@ -159,7 +205,7 @@ class RefactoringEngine(ast.NodeTransformer):
                         attr="array",
                         ctx=ast.Load()
                     ),
-                    args=[ast.Name(id=array_name, ctx=ast.Load())],
+                    args=[ast.Name(id=arr_name, ctx=ast.Load())],
                     keywords=[]
                 ),
                 op=ast.Add(),
@@ -167,27 +213,42 @@ class RefactoringEngine(ast.NodeTransformer):
             )
         )
 
-        # Return the new block
-        return ast.copy_location(vectorized_assign, loop_node)
+        return vectorized_assign
 
     def ensure_numpy_import(self, module_node):
         """
-        Add `import numpy as np` to the module if not already present.
+        Add `import numpy as np` to the module if it is not already present.
+
+        Args:
+            module_node (ast.Module): The module node to inspect and modify.
         """
         for stmt in module_node.body:
             if isinstance(stmt, ast.Import):
                 if any(alias.name == "numpy" for alias in stmt.names):
-                    return
+                    return  # NumPy already imported
 
-        # Add import if not found
+        # Insert NumPy import after existing imports or docstrings
+        insert_idx = 0
+        for idx, stmt in enumerate(module_node.body):
+            if not (isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Str)):
+                insert_idx = idx
+                break
+
         module_node.body.insert(
-            0,
+            insert_idx,
             ast.Import(names=[ast.alias(name="numpy", asname="np")])
         )
+        print(ast.dump(module_node, indent=4))
 
     def find_module_node(self, node):
         """
         Traverse the parent chain to find the root module node.
+
+        Args:
+            node (ast.AST): The starting node.
+
+        Returns:
+            ast.Module: The root module node, or None if not found.
         """
         current = node
         while current and not isinstance(current, ast.Module):

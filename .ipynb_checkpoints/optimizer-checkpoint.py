@@ -2,6 +2,7 @@ from utils.static_analysis import StaticAnalyzer
 from utils.dynamic_profiler import DynamicProfiler
 from utils.refactoring_engine import RefactoringEngine
 from utils.report_generator import generate_html_report
+from utils.VectorizationTransformer import VectorizationTransformer
 import ast
 import astor
 import os
@@ -63,7 +64,7 @@ class PythonOptimizer:
         Perform the optimization process:
         1. Static analysis to identify inefficiencies.
         2. Dynamic profiling for runtime and memory usage.
-        3. Refactoring code for optimization.
+        3. Refactor code for optimization.
         4. Generating and saving a detailed report and optimized script.
         """
         # Load source code from the provided script path
@@ -82,12 +83,16 @@ class PythonOptimizer:
         # Parse the source code into an Abstract Syntax Tree (AST)
         tree = ast.parse(source_code)
 
-        # Refactor the AST using the RefactoringEngine to optimize the code
+        # Apply the RefactoringEngine for general optimizations
         refactorer = RefactoringEngine()
-        optimized_tree = refactorer.visit(tree)
+        tree = refactorer.visit(tree)
+
+        # Apply the VectorizationTransformer for numeric loop optimizations
+        vectorizer = VectorizationTransformer()
+        tree = vectorizer.visit(tree)
 
         # Convert the optimized AST back into Python source code
-        optimized_code = astor.to_source(optimized_tree)
+        optimized_code = astor.to_source(tree)
 
         # Ensure the "optimized_code" directory exists
         output_folder = "optimized_code"
@@ -121,7 +126,7 @@ class PythonOptimizer:
             nested_loop_suggestions, 
             runtime_profile + "\n" + memory_profile
         )
-
+        
         # Save the HTML report to the project directory
         with open("report.html", "w") as report_file:
             report_file.write(report)
