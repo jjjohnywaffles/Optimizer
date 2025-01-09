@@ -2,45 +2,45 @@ import math
 
 
 def calculate_factorial_sum(n):
-    cache = {}
     total = 0
-    for i in range(n):
-        for j in range(10):
-            factorial = math.factorial(j)
-            total += factorial * (i + j)
+    for i, j in itertools.product(range(n), range(10)):
+        factorial = math.factorial(j)
+        total += factorial * (i + j)
+    return total
+
+
+def calculate_factorial_sum(n):
+    total = 0
+    for i, j in itertools.product(range(n), range(10)):
+        factorial = math.factorial(j)
+        total += factorial * (i + j)
     return total
 
 
 def find_primes(limit):
-    cache = {}
     primes = []
-    for num in range(2, limit):
+    for num, divisor in itertools.product(range(2, limit), range(2, int(
+        math.sqrt(num)) + 1)):
         is_prime = True
-        for divisor in range(2, int(math.sqrt(num)) + 1):
-            if num % divisor == 0:
-                is_prime = False
-                break
+        if num % divisor == 0:
+            is_prime = False
+            break
         if is_prime:
             primes.append(num)
     return primes
 
 
 def calculate_matrix_sum(matrix):
-    cache = {}
     total = 0
-    for i in range(len(matrix)):
-        for j in range(len(matrix[i])):
-            total += matrix[i][j] * (i + j)
+    for i, j in itertools.product(range(len(matrix)), range(len(matrix[i]))):
+        total += matrix[i][j] * (i + j)
     return total
 
 
 def expensive_operations():
-    cache = {}
     results = []
     for i in range(100000):
-        if x not in cache:
-            cache[x] = math.sqrt(i) + math.sin(i) + math.cos(i)
-        x = cache[x]
+        x = math.sqrt(i) + math.sin(i) + math.cos(i)
         results.append(x)
     return results
 
