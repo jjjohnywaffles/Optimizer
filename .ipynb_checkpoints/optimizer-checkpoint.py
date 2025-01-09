@@ -1,7 +1,7 @@
-from static_analysis import StaticAnalyzer
-from dynamic_profiler import DynamicProfiler
-from refactoring_engine import RefactoringEngine
-from report_generator import generate_html_report
+from utils.static_analysis import StaticAnalyzer
+from utils.dynamic_profiler import DynamicProfiler
+from utils.refactoring_engine import RefactoringEngine
+from utils.report_generator import generate_html_report
 import ast
 import astor
 import os
