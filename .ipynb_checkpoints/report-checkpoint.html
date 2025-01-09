@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Optimization Report</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 10px;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border: 1px solid #ddd;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Code Optimization Report</h1>
+    <h2>Static Analysis</h2>
+    <ul>
+        
+        <li>Line 37: Consider optimizing loop with range(100000).</li>
+        
+        <li>Line 10: Consider caching repeated computation 'BinOp(left=Name(id='factorial', ctx=Load()), op=Mult(), right=BinOp(left=Name(id='i', ctx=Load()), op=Add(), right=Name(id='j', ctx=Load())))'.</li>
+        
+        <li>Line 10: Consider caching repeated computation 'BinOp(left=Name(id='i', ctx=Load()), op=Add(), right=Name(id='j', ctx=Load()))'.</li>
+        
+        <li>Line 18: Consider caching repeated computation 'BinOp(left=Call(func=Name(id='int', ctx=Load()), args=[Call(func=Attribute(value=Name(id='math', ctx=Load()), attr='sqrt', ctx=Load()), args=[Name(id='num', ctx=Load())], keywords=[])], keywords=[]), op=Add(), right=Constant(value=1))'.</li>
+        
+        <li>Line 31: Consider caching repeated computation 'BinOp(left=Subscript(value=Subscript(value=Name(id='matrix', ctx=Load()), slice=Name(id='i', ctx=Load()), ctx=Load()), slice=Name(id='j', ctx=Load()), ctx=Load()), op=Mult(), right=BinOp(left=Name(id='i', ctx=Load()), op=Add(), right=Name(id='j', ctx=Load())))'.</li>
+        
+        <li>Line 31: Consider caching repeated computation 'BinOp(left=Name(id='i', ctx=Load()), op=Add(), right=Name(id='j', ctx=Load()))'.</li>
+        
+        <li>Line 38: Consider caching repeated computation 'BinOp(left=BinOp(left=Call(func=Attribute(value=Name(id='math', ctx=Load()), attr='sqrt', ctx=Load()), args=[Name(id='i', ctx=Load())], keywords=[]), op=Add(), right=Call(func=Attribute(value=Name(id='math', ctx=Load()), attr='sin', ctx=Load()), args=[Name(id='i', ctx=Load())], keywords=[])), op=Add(), right=Call(func=Attribute(value=Name(id='math', ctx=Load()), attr='cos', ctx=Load()), args=[Name(id='i', ctx=Load())], keywords=[]))'.</li>
+        
+        <li>Line 38: Consider caching repeated computation 'BinOp(left=Call(func=Attribute(value=Name(id='math', ctx=Load()), attr='sqrt', ctx=Load()), args=[Name(id='i', ctx=Load())], keywords=[]), op=Add(), right=Call(func=Attribute(value=Name(id='math', ctx=Load()), attr='sin', ctx=Load()), args=[Name(id='i', ctx=Load())], keywords=[]))'.</li>
+        
+    </ul>
+    <h2>Dynamic Analysis</h2>
+    <pre>
+Peak memory usage: 45.06 MB</pre>
+</body>
+</html>
