@@ -6,8 +6,22 @@ def numeric_loops():
     c = 10
     for i in range(len(arr)):
         arr[i] += c
+    arr = np.array(arr) + arr[i] * 2
+    sum_val = 0
     for i in range(len(arr)):
-        arr[i] = arr[i] * 2
+        print(f'Index: {i}, Value: {arr[i]}')
+        arr[i] = arr[i] + 1
+        sum_val += arr[i]
+    arr.append(999)
+    return arr, sum_val
+
+
+def numeric_loops():
+    arr = [1, 2, 3, 4, 5]
+    c = 10
+    for i in range(len(arr)):
+        arr[i] += c
+    arr = np.array(arr) + arr[i] * 2
     sum_val = 0
     for i in range(len(arr)):
         print(f'Index: {i}, Value: {arr[i]}')
@@ -41,8 +55,7 @@ def nested_loops():
 
 def advanced_arithmetic():
     arr = [2, 4, 6, 8]
-    for i in range(len(arr)):
-        arr[i] = arr[i] * 3 - 1
+    arr = np.array(arr) + (arr[i] * 3 - 1)
     arr.insert(2, 777)
     return arr
 
