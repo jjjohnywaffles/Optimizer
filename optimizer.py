@@ -11,32 +11,26 @@ class PythonOptimizer:
 
     def format_suggestions(self, suggestions):
         """Clean and simplify suggestions for better readability."""
+        def simplify_ast_expression(expression):
+            """Simplify an AST expression into plain English."""
+            if "Call" in expression:
+                return "a function call"
+            if "BinOp" in expression:
+                return "a mathematical operation"
+            if "Subscript" in expression:
+                return "a matrix or array element"
+            return expression
+
         formatted = []
         for suggestion in suggestions:
-            if "BinOp" in suggestion:
-                # Parse and simplify BinOp suggestions
-                formatted.append(
-                    suggestion
-                    .replace("Expression (", "")
-                    .replace("Call(func=", "Function ")
-                    .replace("Attribute(value=", "")
-                    .replace("args=[", " with arguments ")
-                    .replace("keywords=", "")
-                    .replace("op=", "operation ")
-                    .replace("ctx=Load()", "")
-                    .replace("ctx=Store()", "")
-                    .replace(", ", ", ")
-                    .replace(", slice=", " and index ")
-                    .replace(", attr=", " accessing ")
-                    .replace("math,", "math")
-                    .replace("BinOp(", "Operation (")
-                    .replace(")", "")
-                    .replace("Constant(value=", "value ")
-                )
+            if "BinOp" in suggestion or "Call" in suggestion or "Subscript" in suggestion:
+                # Simplify the AST structure
+                readable = simplify_ast_expression(suggestion)
+                formatted.append(f"{suggestion.split(':')[0]}: Consider caching {readable}.")
             else:
-                # Keep other suggestions as is
                 formatted.append(suggestion)
         return formatted
+
 
     def optimize(self):
         # Load source code
@@ -64,12 +58,14 @@ class PythonOptimizer:
             + static_results["repeated_computations"]
             + static_results["vectorization_candidates"]
         )
-        formatted_static_suggestions = self.format_suggestions(static_suggestions)
+        nested_loop_suggestions = [
+            f"Line {lineno}: Consider reducing nesting." for lineno in static_results["nested_loops"]
+        ]
 
         # Generate HTML report
+        formatted_static_suggestions = self.format_suggestions(static_suggestions)
         report = generate_html_report(
-            formatted_static_suggestions, 
-            runtime_profile + "\n" + memory_profile
+            formatted_static_suggestions, nested_loop_suggestions, runtime_profile + "\n" + memory_profile
         )
 
         # Save the report
@@ -77,6 +73,7 @@ class PythonOptimizer:
             report_file.write(report)
 
         print("Optimization complete. Report saved as 'report.html'.")
+
 
 if __name__ == "__main__":
     import argparse

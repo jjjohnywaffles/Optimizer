@@ -2,36 +2,25 @@ import ast
 
 class StaticAnalyzer(ast.NodeVisitor):
     def __init__(self):
-        self.nested_loops = 0
+        self.nested_loops = []  # Store line numbers of nested loops
         self.high_iterations = []
         self.repeated_computations = []
         self.vectorization_candidates = []
 
     def visit_For(self, node):
+        # Detect nested loops
+        if hasattr(node, "parent") and isinstance(node.parent, ast.For):
+            self.nested_loops.append(node.lineno)  # Track line number of nested loop
+
         # Detect loops with high iterations
         if isinstance(node.iter, ast.Call) and getattr(node.iter.func, "id", None) == "range":
             if node.iter.args:
-                # Handle constant and non-constant arguments
                 arg = node.iter.args[0]
-                if isinstance(arg, ast.Constant):
-                    value = arg.value
-                elif isinstance(arg, ast.Name):
-                    value = f"variable {arg.id}"  # Placeholder for variables
-                else:
-                    value = "non-constant"
-
-                # Detect high iteration loops
-                if isinstance(value, int) and value > 1000:
+                if isinstance(arg, ast.Constant) and arg.value > 1000:
                     self.high_iterations.append(
-                        f"Line {node.lineno}: Consider optimizing loop with range({value})."
+                        f"Line {node.lineno}: Consider optimizing loop with range({arg.value})."
                     )
 
-        # Detect nested loops
-        if hasattr(node, "parent") and isinstance(node.parent, ast.For):
-            self.nested_loops += 1
-            print(f"Detected nested loop at line {node.lineno}")
-
-        # Continue visiting child nodes
         self.generic_visit(node)
 
     def visit_BinOp(self, node):

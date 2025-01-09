@@ -13,14 +13,23 @@
         h1, h2 {
             color: #333;
         }
-        ul {
-            padding-left: 20px;
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
         }
-        li {
-            margin-bottom: 10px;
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
         }
         pre {
-            background-color: #f4f4f4;
+            background-color: #f9f9f9;
             padding: 10px;
             border: 1px solid #ddd;
             overflow-x: auto;
@@ -29,28 +38,109 @@
 </head>
 <body>
     <h1>Code Optimization Report</h1>
+    
     <h2>Static Analysis</h2>
-    <ul>
-        
-        <li>Line 37: Consider optimizing loop with range(100000).</li>
-        
-        <li>Line 10: Consider caching repeated computation 'BinOp(left=Name(id='factorial', ctx=Load()), op=Mult(), right=BinOp(left=Name(id='i', ctx=Load()), op=Add(), right=Name(id='j', ctx=Load())))'.</li>
-        
-        <li>Line 10: Consider caching repeated computation 'BinOp(left=Name(id='i', ctx=Load()), op=Add(), right=Name(id='j', ctx=Load()))'.</li>
-        
-        <li>Line 18: Consider caching repeated computation 'BinOp(left=Call(func=Name(id='int', ctx=Load()), args=[Call(func=Attribute(value=Name(id='math', ctx=Load()), attr='sqrt', ctx=Load()), args=[Name(id='num', ctx=Load())], keywords=[])], keywords=[]), op=Add(), right=Constant(value=1))'.</li>
-        
-        <li>Line 31: Consider caching repeated computation 'BinOp(left=Subscript(value=Subscript(value=Name(id='matrix', ctx=Load()), slice=Name(id='i', ctx=Load()), ctx=Load()), slice=Name(id='j', ctx=Load()), ctx=Load()), op=Mult(), right=BinOp(left=Name(id='i', ctx=Load()), op=Add(), right=Name(id='j', ctx=Load())))'.</li>
-        
-        <li>Line 31: Consider caching repeated computation 'BinOp(left=Name(id='i', ctx=Load()), op=Add(), right=Name(id='j', ctx=Load()))'.</li>
-        
-        <li>Line 38: Consider caching repeated computation 'BinOp(left=BinOp(left=Call(func=Attribute(value=Name(id='math', ctx=Load()), attr='sqrt', ctx=Load()), args=[Name(id='i', ctx=Load())], keywords=[]), op=Add(), right=Call(func=Attribute(value=Name(id='math', ctx=Load()), attr='sin', ctx=Load()), args=[Name(id='i', ctx=Load())], keywords=[])), op=Add(), right=Call(func=Attribute(value=Name(id='math', ctx=Load()), attr='cos', ctx=Load()), args=[Name(id='i', ctx=Load())], keywords=[]))'.</li>
-        
-        <li>Line 38: Consider caching repeated computation 'BinOp(left=Call(func=Attribute(value=Name(id='math', ctx=Load()), attr='sqrt', ctx=Load()), args=[Name(id='i', ctx=Load())], keywords=[]), op=Add(), right=Call(func=Attribute(value=Name(id='math', ctx=Load()), attr='sin', ctx=Load()), args=[Name(id='i', ctx=Load())], keywords=[]))'.</li>
-        
-    </ul>
+    <table>
+        <thead>
+            <tr>
+                <th>Line</th>
+                <th>Suggestion</th>
+            </tr>
+        </thead>
+        <tbody>
+            
+            <tr>
+                <td>37</td>
+                <td>Consider optimizing loop with range(100000).</td>
+            </tr>
+            
+            <tr>
+                <td>10</td>
+                <td>Consider caching a mathematical operation.</td>
+            </tr>
+            
+            <tr>
+                <td>10</td>
+                <td>Consider caching a mathematical operation.</td>
+            </tr>
+            
+            <tr>
+                <td>18</td>
+                <td>Consider caching a function call.</td>
+            </tr>
+            
+            <tr>
+                <td>31</td>
+                <td>Consider caching a mathematical operation.</td>
+            </tr>
+            
+            <tr>
+                <td>31</td>
+                <td>Consider caching a mathematical operation.</td>
+            </tr>
+            
+            <tr>
+                <td>38</td>
+                <td>Consider caching a function call.</td>
+            </tr>
+            
+            <tr>
+                <td>38</td>
+                <td>Consider caching a function call.</td>
+            </tr>
+            
+        </tbody>
+    </table>
+
+    <h2>Nested Loops</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Line</th>
+                <th>Suggestion</th>
+            </tr>
+        </thead>
+        <tbody>
+            
+            <tr>
+                <td>8</td>
+                <td>Consider reducing nesting.</td>
+            </tr>
+            
+            <tr>
+                <td>18</td>
+                <td>Consider reducing nesting.</td>
+            </tr>
+            
+            <tr>
+                <td>30</td>
+                <td>Consider reducing nesting.</td>
+            </tr>
+            
+        </tbody>
+    </table>
+
+    <h2>What "Consider Caching Repeated Computation" Means</h2>
+    <p>
+        Repeated computations inside loops can significantly impact runtime performance.
+        Caching stores the result of a computation so it doesn’t need to be recalculated multiple times.
+        For example:
+    </p>
+    <pre>
+# Instead of:
+for i in range(100):
+    result = expensive_function(i)
+
+# Use:
+cache = {}
+for i in range(100):
+    if i not in cache:
+        cache[i] = expensive_function(i)
+    result = cache[i]
+    </pre>
+
     <h2>Dynamic Analysis</h2>
     <pre>
-Peak memory usage: 45.06 MB</pre>
+Peak memory usage: 44.80 MB</pre>
 </body>
 </html>
