@@ -37,7 +37,7 @@ This project is designed to help developers improve code performance and readabi
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-repo/python-code-optimizer.git
+   git clone https://github.com/jjjohnywaffles/Python-Code-Optimizer.git
    cd python-code-optimizer
    ```
    
