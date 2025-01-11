@@ -58,7 +58,6 @@ This project is designed to help developers improve code performance and readabi
   ```bash
   python optimizer.py <path-to-script>
 
-
 - **Example**:
 
     python optimizer.py example_script.py

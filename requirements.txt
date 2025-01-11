@@ -1,6 +1,4 @@
 astor==0.8.1            # For converting AST back to Python code
 numpy==1.24.3           # Required for vectorization transformations
 memory-profiler==0.60.0 # For runtime and memory profiling
-pytest==7.4.2           # For running your test suite
-itertools               # Used for flattening loops 
-logging                 # Python's built-in logging 
+pytest==7.4.2           # For running your test suite 

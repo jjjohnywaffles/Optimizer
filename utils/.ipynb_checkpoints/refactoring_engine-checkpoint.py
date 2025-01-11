@@ -238,7 +238,6 @@ class RefactoringEngine(ast.NodeTransformer):
             insert_idx,
             ast.Import(names=[ast.alias(name="numpy", asname="np")])
         )
-        print(ast.dump(module_node, indent=4))
 
     def find_module_node(self, node):
         """

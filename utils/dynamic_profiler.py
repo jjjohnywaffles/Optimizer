@@ -1,6 +1,7 @@
 import cProfile
 import pstats
 import io
+from memory_profiler import memory_usage  # Explicit import
 
 class DynamicProfiler:
     """
@@ -29,7 +30,6 @@ class DynamicProfiler:
         Returns:
             str: A formatted string containing the profiling results, sorted by cumulative time.
         """
-        # Initialize the cProfile profiler
         profiler = cProfile.Profile()
 
         # Enable the profiler and execute the script
@@ -41,8 +41,8 @@ class DynamicProfiler:
         # Collect profiling statistics into a stream
         stream = io.StringIO()
         stats = pstats.Stats(profiler, stream=stream)
-        stats.strip_dirs().sort_stats("cumtime")  # Sort stats by cumulative time
-        return stream.getvalue()  # Return the formatted profiling data as a string
+        stats.strip_dirs().sort_stats("cumtime")
+        return stream.getvalue()  # Return the profiling results
 
     def profile_memory(self):
         """
@@ -55,13 +55,13 @@ class DynamicProfiler:
         """
         from memory_profiler import memory_usage
 
-        # Define a wrapper function to execute the script for memory profiling
         def run_script():
             with open(self.script_path, "r") as file:
                 exec(file.read(), {})  # Execute the script in a controlled environment
 
-        # Measure memory usage during script execution
-        mem_usage = memory_usage(run_script)
-
-        # Return the peak memory usage as a formatted string
-        return f"Peak memory usage: {max(mem_usage):.2f} MB"
+        try:
+            # Measure memory usage
+            mem_usage = memory_usage(run_script)
+            return f"Peak memory usage: {max(mem_usage):.2f} MB"
+        except Exception as e:
+            return str(e)
