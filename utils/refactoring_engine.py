@@ -1,255 +1,228 @@
 import ast
+import itertools
 
 class RefactoringEngine(ast.NodeTransformer):
     """
-    RefactoringEngine that:
-      - Flattens nested loops using itertools.product.
-      - Vectorizes simple numeric loops using NumPy.
+    RefactoringEngine to optimize Python code by:
+      - Flattening nested loops using itertools.product.
+      - Vectorizing simple numeric loops using NumPy.
+      - Converting loops into list comprehensions.
+      - Unrolling small loops for performance gains.
     """
 
-    def contains_numpy_usage(self, node):
-        """
-        Check if the AST node contains any usage of 'np.'.
+    def __init__(self):
+        self.transformed_nodes = set()
 
-        Args:
-            node (ast.AST): The root node to traverse.
+    def visit_For(self, node):
+        if node in self.transformed_nodes:
+            return node
 
-        Returns:
-            bool: True if 'np.' usage is found, False otherwise.
-        """
-        for child in ast.walk(node):
-            if isinstance(child, ast.Attribute) and isinstance(child.value, ast.Name):
-                if child.value.id == "np":
-                    return True
-        return False
-    
-    def visit_Module(self, node):
-        """
-        Visit the root module node and ensure necessary imports after processing.
-        """
-        # Traverse the tree to set parent nodes and apply transformations
-        for child in ast.iter_child_nodes(node):
-            setattr(child, "parent", node)
-            self._set_parents(child)
         self.generic_visit(node)
 
-        # Check for NumPy usage and add the import if necessary
-        if self.contains_numpy_usage(node):
-            self.ensure_numpy_import(node)
+        # Apply transformations sequentially
+        node = self.flatten_nested_loop(node)
+        node = self.vectorize_numeric_loop(node)
+        node = self.convert_to_list_comprehension(node)
+        node = self.unroll_small_loops(node)
 
+        self.transformed_nodes.add(node)
         return node
-    
-    
 
-    def _set_parents(self, parent_node):
+    def flatten_nested_loop(self, node):
         """
-        Recursively assign `.parent` attributes to child nodes for upward traversal.
-
-        Args:
-            parent_node (ast.AST): The current parent node to process.
+        Flatten nested loops using `itertools.product`, ensuring proper scoping.
         """
-        for child in ast.iter_child_nodes(parent_node):
-            setattr(child, "parent", parent_node)
-            self._set_parents(child)
+        if len(node.body) != 1 or not isinstance(node.body[0], ast.For):
+            return node
 
-    def visit_For(self, outer_loop):
-        """
-        Process a `for` loop to:
-          1. Flatten nested loops using `itertools.product`.
-          2. Vectorize simple numeric loops using NumPy.
-
-        Args:
-            outer_loop (ast.For): The outer loop node to analyze and transform.
-
-        Returns:
-            ast.AST: The transformed loop node, or the original if no transformations apply.
-        """
-        # Visit children first to ensure correct tree structure
-        self.generic_visit(outer_loop)
-
-        # Attempt to flatten nested loops
-        flattened = self.flatten_nested_loop(outer_loop)
-        if flattened is not outer_loop:
-            return flattened
-
-        # Attempt to vectorize numeric loops
-        vectorized = self.vectorize_numeric_loop(outer_loop)
-        return vectorized
-
-    def flatten_nested_loop(self, outer_loop):
-        """
-        Flatten a nested loop into a single loop with `itertools.product`.
-
-        Args:
-            outer_loop (ast.For): The outer loop node containing a nested loop.
-
-        Returns:
-            ast.For: A flattened loop node, or the original if no changes are made.
-        """
-        inner_loops = [stmt for stmt in outer_loop.body if isinstance(stmt, ast.For)]
-
-        # Only flatten if exactly one inner loop is present
-        if len(inner_loops) != 1:
-            return outer_loop
-
-        inner_loop = inner_loops[0]
+        inner_loop = node.body[0]
         if (
-            isinstance(outer_loop.target, ast.Name)
+            isinstance(node.target, ast.Name)
             and isinstance(inner_loop.target, ast.Name)
-            and isinstance(outer_loop.iter, ast.Call)
+            and isinstance(node.iter, ast.Call)
             and isinstance(inner_loop.iter, ast.Call)
+            and isinstance(inner_loop.iter.args[0], ast.Call)
+            and isinstance(inner_loop.iter.args[0].func, ast.Name)
+            and inner_loop.iter.args[0].func.id == "len"
         ):
-            self.ensure_itertools_import(outer_loop)
+            outer_var = node.target.id
+            inner_var = inner_loop.target.id
+
+            if outer_var == inner_var:
+                outer_var = f"{outer_var}_outer"
+                inner_var = f"{inner_var}_inner"
+
+            # Extract matrix name dynamically
+            if isinstance(inner_loop.iter.args[0].args[0], ast.Name):
+                matrix_name = inner_loop.iter.args[0].args[0].id
+            else:
+                return node  # If the matrix name cannot be resolved, skip transformation
+
+            # Create iterables for itertools.product
+            outer_range = node.iter
+            inner_range = ast.Call(
+                func=ast.Name(id="len", ctx=ast.Load()),
+                args=[
+                    ast.Subscript(
+                        value=ast.Name(id=matrix_name, ctx=ast.Load()),
+                        slice=ast.Index(value=ast.Constant(value=0)),
+                        ctx=ast.Load(),
+                    )
+                ],
+                keywords=[],
+            )
 
             flattened_target = ast.Tuple(
-                elts=[outer_loop.target, inner_loop.target],
-                ctx=ast.Store()
+                elts=[
+                    ast.Name(id=outer_var, ctx=ast.Store()),
+                    ast.Name(id=inner_var, ctx=ast.Store()),
+                ],
+                ctx=ast.Store(),
             )
 
             flattened_iter = ast.Call(
                 func=ast.Attribute(
                     value=ast.Name(id="itertools", ctx=ast.Load()),
                     attr="product",
-                    ctx=ast.Load()
+                    ctx=ast.Load(),
                 ),
-                args=[outer_loop.iter, inner_loop.iter],
-                keywords=[]
+                args=[outer_range, inner_range],
+                keywords=[],
             )
 
-            new_body = []
-            for stmt in outer_loop.body:
-                if stmt is inner_loop:
-                    new_body.extend(inner_loop.body)
-                else:
-                    new_body.append(stmt)
-
+            new_body = inner_loop.body
             return ast.For(
                 target=flattened_target,
                 iter=flattened_iter,
                 body=new_body,
                 orelse=[],
-                lineno=outer_loop.lineno,
-                col_offset=outer_loop.col_offset
+                lineno=node.lineno,
+                col_offset=node.col_offset,
             )
-        return outer_loop
+        return node
+
+
+    def vectorize_numeric_loop(self, node):
+        if (
+            isinstance(node.iter, ast.Call) and
+            isinstance(node.iter.func, ast.Name) and
+            node.iter.func.id == "range" and
+            len(node.body) == 1 and
+            isinstance(node.body[0], (ast.AugAssign, ast.Assign))
+        ):
+            stmt = node.body[0]
+            if isinstance(stmt, ast.Assign):
+                target = stmt.targets[0]
+                value = stmt.value
+            else:  # AugAssign
+                target = stmt.target
+                value = stmt.value
+
+            if isinstance(target, ast.Subscript) and isinstance(target.value, ast.Name):
+                array_name = target.value.id
+                self.ensure_numpy_import(node)
+
+                # Convert to vectorized operation
+                return ast.Assign(
+                    targets=[ast.Name(id=array_name, ctx=ast.Store())],
+                    value=ast.BinOp(
+                        left=ast.Call(
+                            func=ast.Attribute(
+                                value=ast.Name(id="np", ctx=ast.Load()),
+                                attr="array",
+                                ctx=ast.Load()
+                            ),
+                            args=[ast.Name(id=array_name, ctx=ast.Load())],
+                            keywords=[]
+                        ),
+                        op=stmt.op if isinstance(stmt, ast.AugAssign) else ast.Add(),
+                        right=value
+                    )
+                )
+        return node
+
+    def convert_to_list_comprehension(self, node):
+        if not isinstance(node, ast.For):
+            return node
+
+        if (
+            isinstance(node.iter, ast.Call) and
+            isinstance(node.iter.func, ast.Name) and
+            node.iter.func.id == "range" and
+            len(node.body) == 1 and
+            isinstance(node.body[0], ast.Assign) and
+            len(node.body[0].targets) == 1
+        ):
+            target = node.body[0].targets[0]
+            if isinstance(target, ast.Subscript) and isinstance(target.value, ast.Name):
+                array_name = target.value.id
+                comprehension = ast.ListComp(
+                    elt=node.body[0].value,
+                    generators=[
+                        ast.comprehension(
+                            target=node.target,
+                            iter=node.iter,
+                            ifs=[],
+                            is_async=0
+                        )
+                    ]
+                )
+                return ast.Assign(
+                    targets=[ast.Name(id=array_name, ctx=ast.Store())],
+                    value=comprehension
+                )
+        return node
+
+    def unroll_small_loops(self, node):
+        if not isinstance(node, ast.For):
+            return node
+
+        if (
+            isinstance(node.iter, ast.Call) and
+            isinstance(node.iter.func, ast.Name) and
+            node.iter.func.id == "range" and
+            isinstance(node.iter.args[0], ast.Constant) and
+            node.iter.args[0].value <= 5
+        ):
+            new_body = []
+            for i in range(node.iter.args[0].value):
+                for stmt in node.body:
+                    copied_stmt = ast.fix_missing_locations(ast.copy_location(stmt, stmt))
+                    new_body.append(copied_stmt)
+            return new_body
+        return node
+
+        def replace_loop_variable(self, stmt, loop_var, replacement):
+            """
+            Replace occurrences of the loop variable in the given statement.
+            """
+            class LoopVarReplacer(ast.NodeTransformer):
+                def visit_Name(self, node):
+                    if node.id == loop_var.id:
+                        return ast.copy_location(replacement, node)
+                    return node
+
+            return LoopVarReplacer().visit(stmt)
 
     def ensure_itertools_import(self, node):
-        """
-        Add `import itertools` to the module if it is not already present.
-
-        Args:
-            node (ast.AST): The node within the module to inspect for imports.
-        """
         module = self.find_module_node(node)
         if not module:
             return
-
         for stmt in module.body:
-            if isinstance(stmt, ast.Import):
-                if any(alias.name == "itertools" for alias in stmt.names):
-                    return
+            if isinstance(stmt, ast.Import) and any(alias.name == "itertools" for alias in stmt.names):
+                return
+        module.body.insert(0, ast.Import(names=[ast.alias(name="itertools", asname=None)]))
 
-        module.body.insert(
-            0,
-            ast.Import(names=[ast.alias(name="itertools", asname=None)])
-        )
-
-    def vectorize_numeric_loop(self, loop_node):
-        """
-        Detect and replace simple numeric loops with equivalent NumPy operations.
-
-        Args:
-            loop_node (ast.For): The loop node to analyze for vectorization.
-
-        Returns:
-            ast.AST: A NumPy-based transformation or the original loop if no vectorization applies.
-        """
-        if not (isinstance(loop_node.iter, ast.Call)
-                and isinstance(loop_node.iter.func, ast.Name)
-                and loop_node.iter.func.id == "range"):
-            return loop_node
-
-        if len(loop_node.body) == 1 and isinstance(loop_node.body[0], ast.Assign):
-            stmt = loop_node.body[0]
-            if len(stmt.targets) == 1 and isinstance(stmt.targets[0], ast.Subscript):
-                target = stmt.targets[0]
-                if isinstance(target.value, ast.Name):
-                    array_name = target.value.id
-                    vectorized_code = self.build_vectorized_code(array_name, stmt.value)
-                    setattr(vectorized_code, "vectorized", True)  # Add marker
-                    return vectorized_code
-
-        return loop_node
-
-    def build_vectorized_code(self, arr_name: str, value_node: ast.AST):
-        """
-        Convert a loop into a vectorized NumPy transformation.
-
-        Args:
-            arr_name (str): The name of the array being modified in the loop.
-            value_node (ast.AST): The value or operation applied in the loop.
-
-        Returns:
-            ast.AST: A new block of code replacing the loop with a NumPy transformation.
-        """
-        module = self.find_module_node(value_node)
-        if module:
-            self.ensure_numpy_import(module)
-
-        vectorized_assign = ast.Assign(
-            targets=[ast.Name(id=arr_name, ctx=ast.Store())],
-            value=ast.BinOp(
-                left=ast.Call(
-                    func=ast.Attribute(
-                        value=ast.Name(id="np", ctx=ast.Load()),
-                        attr="array",
-                        ctx=ast.Load()
-                    ),
-                    args=[ast.Name(id=arr_name, ctx=ast.Load())],
-                    keywords=[]
-                ),
-                op=ast.Add(),
-                right=value_node
-            )
-        )
-
-        return vectorized_assign
-
-    def ensure_numpy_import(self, module_node):
-        """
-        Add `import numpy as np` to the module if it is not already present.
-
-        Args:
-            module_node (ast.Module): The module node to inspect and modify.
-        """
-        for stmt in module_node.body:
-            if isinstance(stmt, ast.Import):
-                if any(alias.name == "numpy" for alias in stmt.names):
-                    return  # NumPy already imported
-
-        # Insert NumPy import after existing imports or docstrings
-        insert_idx = 0
-        for idx, stmt in enumerate(module_node.body):
-            if not (isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Str)):
-                insert_idx = idx
-                break
-
-        module_node.body.insert(
-            insert_idx,
-            ast.Import(names=[ast.alias(name="numpy", asname="np")])
-        )
+    def ensure_numpy_import(self, node):
+        module = self.find_module_node(node)
+        if not module:
+            return
+        for stmt in module.body:
+            if isinstance(stmt, ast.Import) and any(alias.name == "numpy" for alias in stmt.names):
+                return
+        module.body.insert(0, ast.Import(names=[ast.alias(name="numpy", asname="np")]))
 
     def find_module_node(self, node):
-        """
-        Traverse the parent chain to find the root module node.
-
-        Args:
-            node (ast.AST): The starting node.
-
-        Returns:
-            ast.Module: The root module node, or None if not found.
-        """
-        current = node
-        while current and not isinstance(current, ast.Module):
-            current = getattr(current, "parent", None)
-        return current
+        while node and not isinstance(node, ast.Module):
+            node = getattr(node, "parent", None)
+        return node

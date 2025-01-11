@@ -91,3 +91,42 @@ This project is designed to help developers improve code performance and readabi
     │   ├── test_static_analysis.py
     │   ├── test_refactoring_engine.py
     
+
+## ⚙️ Utilities in the `utils` Directory
+
+Below is a summary of what each file in the `utils` directory does:
+
+### `__init__.py`
+- Marks the `utils` folder as a Python package.
+- Allows other parts of the project to import the modules in this directory.
+
+### `dynamic_profiler.py`
+- Handles runtime and memory profiling of Python scripts.
+- Uses `cProfile` for execution time profiling and `memory_profiler` for tracking memory usage.
+- Provides methods like `profile_runtime` and `profile_memory` to gather and return profiling data.
+
+### `project_analyzer.py`
+- Analyzes a project directory for Python scripts.
+- Recursively scans the directory to collect `.py` files.
+
+### `refactoring_engine.py`
+- Responsible for refactoring Python code based on analysis results.
+- Works with the Abstract Syntax Tree (AST) to perform transformations like replacing loops with vectorized operations or optimizing repeated calculations.
+- Implements methods to modify and optimize Python code programmatically.
+
+### `report_generator.py`
+- Generates an HTML report summarizing the results of the analysis and profiling.
+- Utilizes Jinja2 templates to create the report, which includes details like static analysis results, profiling metrics, and suggestions for optimization.
+
+### `static_analysis.py`
+- Performs static analysis on Python scripts.
+- Identifies inefficiencies such as:
+  - High-iteration loops.
+  - Nested loops.
+  - Repeated computations.
+- Helps detect optimization opportunities without executing the code.
+
+### `VectorizationTransformer.py`
+- Focuses on transforming Python code to leverage vectorized operations using libraries like NumPy.
+- Replaces traditional Python loops with vectorized equivalents to improve performance.
+- Analyzes code and identifies areas that could benefit from vectorization.

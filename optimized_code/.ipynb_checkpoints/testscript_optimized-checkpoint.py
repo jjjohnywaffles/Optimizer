@@ -1,11 +1,11 @@
+import numpy as np
 import math
 
 
 def numeric_loops():
     arr = [1, 2, 3, 4, 5]
     c = 10
-    for i in range(len(arr)):
-        arr[i] += c
+    arr = np.array(arr) + c
     arr = np.array(arr) + arr[i] * 2
     sum_val = 0
     for i in range(len(arr)):
@@ -14,32 +14,6 @@ def numeric_loops():
         sum_val += arr[i]
     arr.append(999)
     return arr, sum_val
-
-
-def numeric_loops():
-    arr = [1, 2, 3, 4, 5]
-    c = 10
-    for i in range(len(arr)):
-        arr[i] += c
-    arr = np.array(arr) + arr[i] * 2
-    sum_val = 0
-    for i in range(len(arr)):
-        print(f'Index: {i}, Value: {arr[i]}')
-        arr[i] = arr[i] + 1
-        sum_val += arr[i]
-    arr.append(999)
-    return arr, sum_val
-
-
-def nested_loops():
-    matrix = [[(i * j) for j in range(5)] for i in range(5)]
-    result = 0
-    for i, j in itertools.product(range(len(matrix)), range(len(matrix[i]))):
-        result += matrix[i][j]
-    for i, j in itertools.product(range(len(matrix)), range(len(matrix[i]))):
-        matrix[i][j] += i + j
-        print(f'matrix[{i}][{j}] = {matrix[i][j]}')
-    return matrix, result
 
 
 def nested_loops():
@@ -63,8 +37,7 @@ def advanced_arithmetic():
 def already_numpy_arrays():
     import numpy as np
     arr_np = np.array([10, 20, 30])
-    for i in range(len(arr_np)):
-        arr_np[i] += 5
+    arr_np = np.array(arr_np) + 5
     return arr_np
 
 
