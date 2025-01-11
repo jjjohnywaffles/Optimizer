@@ -157,7 +157,7 @@ The optimizer transforms the original code to make it more efficient by introduc
         
 #### Optimization Explanation:
     
-    The loop that iteratively updates elements in arr is replaced with a NumPy vectorized operation, which is more concise and faster. This eliminates the need for the explicit for loop.
+The loop that iteratively updates elements in arr is replaced with a NumPy vectorized operation, which is more concise and faster. This eliminates the need for the explicit for loop.
     
     
 #### Original `nested_loop`:
@@ -181,5 +181,5 @@ The optimizer transforms the original code to make it more efficient by introduc
         
 #### Optimization Explanation:
 
-    The nested for loops are replaced with a flattened loop using itertools.product. This flattens the two nested loops into a single iterable, reducing complexity and potentially improving readability and performance.
+The nested for loops are replaced with a flattened loop using itertools.product. This flattens the two nested loops into a single iterable, reducing complexity and potentially improving readability and performance.
     
