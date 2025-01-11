@@ -91,6 +91,7 @@ This project is designed to help developers improve code performance and readabi
     │   ├── test_static_analysis.py
     │   ├── test_refactoring_engine.py
     
+---
 
 ## ⚙️ Utilities in the `utils` Directory
 
@@ -130,3 +131,55 @@ Below is a summary of what each file in the `utils` directory does:
 - Focuses on transforming Python code to leverage vectorized operations using libraries like NumPy.
 - Replaces traditional Python loops with vectorized equivalents to improve performance.
 - Analyzes code and identifies areas that could benefit from vectorization.
+
+---
+
+### Differences Achieved by the Optimizer
+
+The optimizer transforms the original code to make it more efficient by introducing vectorized operations and flattening nested loops. Here's a breakdown of the differences:
+
+#### Original `basic_loop`:
+
+    def basic_loop():
+        arr = [1, 2, 3, 4, 5]
+        c = 10
+        for i in range(len(arr)):
+            arr[i] += c
+        print(arr)
+
+#### Optimized `basic_loop`:
+
+    def basic_loop():
+        arr = [1, 2, 3, 4, 5]
+        c = 10
+        arr = np.array(arr) + c
+        print(arr)
+        
+#### Optimization Explanation:
+    
+    The loop that iteratively updates elements in arr is replaced with a NumPy vectorized operation, which is more concise and faster. This eliminates the need for the explicit for loop.
+    
+    
+#### Original `nested_loop`:
+
+    def nested_loop():
+        matrix = [[i * j for j in range(5)] for i in range(5)]
+        result = 0
+        for i in range(len(matrix)):
+            for j in range(len(matrix[i])):
+                result += matrix[i][j]
+        print(result)
+    
+#### Optimized `nested_loop`:
+
+    def nested_loop():
+        matrix = [[(i * j) for j in range(5)] for i in range(5)]
+        result = 0
+        for i, j in itertools.product(range(len(matrix)), range(len(matrix[i]))):
+            result += matrix[i][j]
+        print(result)
+        
+#### Optimization Explanation:
+
+    The nested for loops are replaced with a flattened loop using itertools.product. This flattens the two nested loops into a single iterable, reducing complexity and potentially improving readability and performance.
+    
