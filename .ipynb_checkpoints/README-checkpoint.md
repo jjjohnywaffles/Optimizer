@@ -76,17 +76,19 @@ This project is designed to help developers improve code performance and readabi
 ## 📂 Project Structure
 
     .
-    ├── optimizer.py               # Main entry point for the optimizer
-    ├── requirements.txt           # Dependencies for the project
-    ├── README.md                  # Project documentation
-    ├── optimized_code/            # Directory for saving optimized scripts
-    ├── templates/                 # HTML template for the report
+    ├── optimizer.py                       # Main entry point for the optimizer
+    ├── requirements.txt                   # Dependencies for the project
+    ├── README.md                          # Project documentation
+    ├── optimized_code/                    # Directory for saving optimized scripts
+    ├── templates/                         # HTML template for the report
     │   └── report_template.html
-    ├── utils/                     # Utility modules
-    │   ├── refactoring_engine.py  # AST-based refactoring logic
-    │   ├── static_analysis.py     # Static analysis tools
-    │   ├── dynamic_profiler.py    # Runtime and memory profiling tools
-    ├── tests/                     # Unit tests
+    ├── utils/                             # Utility modules
+    │   ├── refactoring_engine.py          # AST-based refactoring logic
+    │   ├── static_analysis.py             # Static analysis tools
+    │   ├── dynamic_profiler.py            # Runtime and memory profiling tools
+    │   ├── project_analyzer.py            # Recursively analyze a project directory to identify all Python files
+    │   ├── VectorizationTransformer.py    # Replaces inefficient loops with vectorized NumPy operations
+    ├── tests/                             # Unit tests
     │   ├── test_static_analysis.py
     │   ├── test_refactoring_engine.py
     
